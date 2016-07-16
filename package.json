@@ -1,0 +1,19 @@
+{
+  "name": "generator-waffle",
+  "version": "1.0.0",
+  "description": "Grunt based webpage generator that supports Coffeescript, Pug and Stylus",
+  "files": [
+    "app"
+  ],
+  "repository": {},
+  "keywords": [
+    "yeoman-generator"
+  ],
+  "author": "wvffle <casper@wvffle.net>",
+  "license": "MIT",
+  "bugs": {},
+  "homepage": "https://wvffle.net",
+  "dependencies": {
+    "yeoman-generator": "^0.23.4"
+  }
+}
