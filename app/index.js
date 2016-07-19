@@ -28,11 +28,11 @@ module.exports = generators.Base.extend({
       this.spawnCommand('npm', [
 
         'install',
+          'rimraf',
           'grunt',
           'grunt-contrib-coffee',
           'grunt-contrib-stylus',
           'grunt-contrib-watch',
-          'grunt-contrib-clean',
           'grunt-contrib-pug',
           'grunt-modify-json',
           'grunt-newer',
