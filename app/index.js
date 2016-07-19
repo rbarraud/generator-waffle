@@ -29,6 +29,7 @@ module.exports = generators.Base.extend({
 
         'install',
           'rimraf',
+          'minimatch',
           'grunt',
           'grunt-contrib-coffee',
           'grunt-contrib-stylus',
