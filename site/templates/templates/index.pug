@@ -1,0 +1,11 @@
+doctype html
+html
+  head
+    != js('<%=name%>')
+    != js_bower()
+    != css('!term/**/*.css')
+    != css('<%=name%>')
+    != css_bower()
+    meta(charset='utf-8')
+  body hello
+    != js_afterload('<%=name%>')

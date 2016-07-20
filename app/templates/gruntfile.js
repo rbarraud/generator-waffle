@@ -1,7 +1,9 @@
 module.exports = function(grunt) {
   var package = grunt.file.readJSON('package.json');
+  var path = require('path')
   var rimraf = require('rimraf')
   var minimatch = require('minimatch')
+  var util = require('util')
 
   grunt.initConfig({
     pkg: package,
@@ -23,13 +25,13 @@ module.exports = function(grunt) {
       compile: {
         options: {
           data: function() {
-            var util = require('util')
+            var file = this.dest.replace(/(^dist\/|\.html$)/gi, '').split('/')[0]
+            if(file == 'index'){ file = 'homepage' }
             var files = {
-              css: grunt.file.expand({ cwd: 'dist/' }, ['styles/reset.css', 'styles/importer.css', 'styles/**/*.css', '!styles/bower/**/*.css']),
-              css_bower: grunt.file.expand({ cwd: 'dist/' }, ['styles/bower/**/*.css']),
-              js: grunt.file.expand({ cwd: 'dist/' }, ['scripts/**/*.js', '!scripts/bower/**/*.js', '!scripts/afterload/**/*.js']),
-              js_afterload: grunt.file.expand({ cwd: 'dist/' }, ['scripts/afterload/**/*.js']),
-              js_bower: grunt.file.expand({ cwd: 'dist/' }, ['scripts/bower/**/*.js'])
+              css: function(src){ return grunt.file.expand({ cwd: 'dist/' }, ['styles/reset.css', 'styles/importer.css', 'styles/**/*.css', '!styles/bower/**/*.css']) },
+              css_bower: function(src){ return grunt.file.expand({ cwd: 'dist/' }, ['styles/bower/**/*.css']) },
+              js: function(src){ return grunt.file.expand({ cwd: 'dist/' }, ['scripts/**/*.js', '!scripts/bower/**/*.js', !src.endsWith('.js')?src+'/**/*.js':'!666.js']) },
+              js_bower: function(src){ return grunt.file.expand({ cwd: 'dist/' }, ['scripts/bower/**/*.js']) }
             }
             var template = {
               css: '<link rel=\'stylesheet\' href=\'%s\'>',
@@ -41,8 +43,15 @@ module.exports = function(grunt) {
               if (files.hasOwnProperty(namespace)) {
                 var type = namespace.split('_')[0]
                 var itype = namespace.split('_')[1]; /* semicolon of the death */
-                (function(namespace, type, itype){
+                (function(namespace, type, itype, file){
                   res[namespace] = function (src) {
+                    if(obj[namespace] == null) obj[namespace] = {}
+                    if(obj[namespace].exclude == null) obj[namespace].exclude = []
+                    obj[namespace].files = files[namespace](src)
+                    for (var i = 0; i < obj[namespace].exclude.length; i++) {
+                      var index = obj[namespace].files.indexOf(obj[namespace].exclude[i])
+                      if(index != -1) obj[namespace].files.splice(index, 1)
+                    }
                     var r = ''
                     if(src == null){
                       for (var i = 0; i < obj[namespace].files.length; i++) {
@@ -50,34 +59,39 @@ module.exports = function(grunt) {
                       }
                       return r
                     }
-                    var pre
+                    obj[namespace].files = obj[namespace].files.filter(minimatch.filter((src != file+'/afterload'?'!':'')+'scripts/*/afterload/**/*.js', {}))
+                    var pre = ''
+                    var index
+                    if(!src.endsWith('.'+type)){
+                      src += '/**/*.'+type
+                    }
                     switch (type) {
                       case 'js':
-                        pre = 'scripts/'
+                        pre += 'scripts/'
                         break
                       case 'css':
-                        pre = 'styles/'
+                        pre += 'styles/'
                         break
-                      default:
-                        pre = ''
                     }
-                    var not = src[0] == '!'
                     if (itype != null) { pre += itype+'/' }
+                    var not = src[0] == '!'
                     if (src[0] == '!') { src = src.slice(1) }
-                    var exclude = obj[namespace].files.filter(minimatch.filter(pre+src, {}))
+                    var exclude = obj[namespace].files.filter(minimatch.filter(pre+'*.'+type, {}))
+                    var exdynamic = obj[namespace].files.filter(minimatch.filter(pre+src, {}))
+                    for (var i = 0; i < exdynamic.length; i++) {
+                      if(exclude.indexOf(exdynamic[i]) == -1) exclude.push(exdynamic[i])
+                    }
                     for (var i = 0; i < exclude.length; i++) {
                       var index = obj[namespace].files.indexOf(exclude[i])
                       var entry = obj[namespace].files.splice(index, 1)
                       if (!not){
+                        obj[namespace].exclude.push(entry[0])
                         r += util.format(template[type], entry[0])
                       }
                     }
                     return r
                   }
-                  obj[namespace] = {
-                    files: files[namespace]
-                  }
-                })(namespace, type, itype)
+                })(namespace, type, itype, file)
               }
             }
             return res
@@ -111,22 +125,22 @@ module.exports = function(grunt) {
       scripts_change: {
         files: ['<%= coffee.compile.files[0].cwd %>/<%= coffee.compile.files[0].src %>'],
         tasks: ['newer:coffee'],
-        options: { spawn: false, event: ['changed'] }
+        options: { spawn: true, event: ['changed'] }
       },
       styles_change: {
         files: ['<%= stylus.compile.files[0].cwd %>/<%= stylus.compile.files[0].src %>'],
         tasks: ['newer:stylus'],
-        options: { spawn: false, event: ['changed'] }
+        options: { spawn: true, event: ['changed'] }
       },
       scripts_add: {
         files: ['<%= coffee.compile.files[0].cwd %>/<%= coffee.compile.files[0].src %>'],
         tasks: ['newer:coffee', 'pug'],
-        options: { spawn: false, event: ['added', 'deleted'] }
+        options: { spawn: true, event: ['added', 'deleted'] }
       },
       styles_add: {
         files: ['<%= stylus.compile.files[0].cwd %>/<%= stylus.compile.files[0].src %>'],
         tasks: ['newer:stylus', 'pug'],
-        options: { spawn: false, event: ['added', 'deleted'] }
+        options: { spawn: true, event: ['added', 'deleted'] }
       },
       templates: {
         files: ['<%= pug.compile.files[0].cwd %>/<%= pug.compile.files[0].src %>'],
@@ -179,5 +193,5 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-bower')
   grunt.loadNpmTasks('grunt-newer')
 
-  grunt.registerTask('default', ['clean', 'newer:modify_json', 'bower', 'newer:coffee', 'newer:stylus', 'newer:pug', 'watch'])
+  grunt.registerTask('default', ['clean', 'newer:modify_json', 'bower', 'coffee', 'stylus', 'newer:pug', 'watch'])
 }
