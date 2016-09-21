@@ -1,6 +1,6 @@
 {
   "name": "generator-waffle",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "\u001b[2~Grunt based webpage generator that supports Coffeescript, Pug and Stylus",
   "main": "index.js",
   "dependencies": {},
